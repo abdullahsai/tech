@@ -137,6 +137,23 @@ function discardReport() {
     loadItems(document.getElementById('categorySelect').value);
 }
 
+function getCoords() {
+    if (!navigator.geolocation) {
+        alert('المتصفح لا يدعم تحديد الموقع');
+        return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const lat = pos.coords.latitude.toFixed(6);
+            const lon = pos.coords.longitude.toFixed(6);
+            document.getElementById('coordinates').value = `${lat}, ${lon}`;
+        },
+        () => {
+            alert('فشل الحصول على الإحداثيات');
+        }
+    );
+}
+
 async function downloadPdf(id) {
     const res = await fetch(`/api/report/${id}`);
     const data = await res.json();
@@ -204,4 +221,5 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reportForm').addEventListener('submit', handleSubmit);
     document.getElementById('addItemsBtn').addEventListener('click', addItems);
     document.getElementById('discardBtn').addEventListener('click', discardReport);
+    document.getElementById('getCoordsBtn').addEventListener('click', getCoords);
 });
