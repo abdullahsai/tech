@@ -137,6 +137,44 @@ function discardReport() {
     loadItems(document.getElementById('categorySelect').value);
 }
 
+let geoWatchId = null;
+
+function getCoords() {
+    const coordsInput = document.getElementById('coordinates');
+    const accuracyEl = document.getElementById('accuracyCounter');
+    if (!navigator.geolocation) {
+        alert('المتصفح لا يدعم تحديد الموقع');
+        return;
+    }
+    if (geoWatchId !== null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+    }
+    accuracyEl.textContent = 'جاري تحديد الدقة...';
+    geoWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const acc = pos.coords.accuracy;
+            accuracyEl.textContent = `الدقة ${acc.toFixed(1)}م`;
+            if (acc <= 5) {
+                const lat = pos.coords.latitude.toFixed(6);
+                const lon = pos.coords.longitude.toFixed(6);
+                coordsInput.value = `${lat}, ${lon}`;
+                accuracyEl.textContent = '';
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+        },
+        () => {
+            alert('فشل الحصول على الإحداثيات');
+            accuracyEl.textContent = '';
+            if (geoWatchId !== null) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+        },
+        { enableHighAccuracy: true }
+    );
+}
+
 async function downloadPdf(id) {
     const res = await fetch(`/api/report/${id}`);
     const data = await res.json();
@@ -204,4 +242,5 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reportForm').addEventListener('submit', handleSubmit);
     document.getElementById('addItemsBtn').addEventListener('click', addItems);
     document.getElementById('discardBtn').addEventListener('click', discardReport);
+    document.getElementById('getCoordsBtn').addEventListener('click', getCoords);
 });
