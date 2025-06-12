@@ -218,24 +218,34 @@ async function downloadPdf(id) {
     });
     y += 2;
     doc.line(10, y, 200, y);
-    y += 6;
-    doc.text('الوصف', 190, y, { align: 'right' });
-    doc.text('التكلفة', 120, y, { align: 'right' });
-    doc.text('الكمية', 90, y, { align: 'right' });
-    doc.text('المجموع', 60, y, { align: 'right' });
-    y += 6;
+    y += 8;
+
+    const colWTotal = 50;
+    const colWQty = 30;
+    const colWCost = 30;
+    const colWDesc = 70;
+
+    function drawItemRow(desc, cost, qty, total) {
+        doc.rect(startX, y, colWTotal, 8);
+        doc.rect(startX + colWTotal, y, colWQty, 8);
+        doc.rect(startX + colWTotal + colWQty, y, colWCost, 8);
+        doc.rect(startX + colWTotal + colWQty + colWCost, y, colWDesc, 8);
+        doc.text(total, startX + colWTotal - 2, y + 5, { align: 'right' });
+        doc.text(qty, startX + colWTotal + colWQty - 2, y + 5, { align: 'right' });
+        doc.text(cost, startX + colWTotal + colWQty + colWCost - 2, y + 5, { align: 'right' });
+        doc.text(desc, startX + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5, { align: 'right' });
+        y += 8;
+    }
+
+    drawItemRow('الوصف', 'التكلفة', 'الكمية', 'المجموع');
     data.items.forEach(it => {
-        doc.text(it.description, 190, y, { align: 'right' });
-        doc.text(it.cost.toFixed(2), 120, y, { align: 'right' });
-        doc.text(String(it.quantity), 90, y, { align: 'right' });
-        doc.text(it.line_total.toFixed(2), 60, y, { align: 'right' });
-        y += 6;
+        drawItemRow(it.description, it.cost.toFixed(2), String(it.quantity), it.line_total.toFixed(2));
         if (y > 270) {
             doc.addPage();
             y = 20;
         }
     });
-    y += 6;
+    y += 8;
     doc.text(`المجموع الكلي: $${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
     doc.save(`report-${id}.pdf`);
 }
