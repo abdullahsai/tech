@@ -149,7 +149,7 @@ function getCoords() {
     if (geoWatchId !== null) {
         navigator.geolocation.clearWatch(geoWatchId);
     }
-    accuracyEl.textContent = 'جاري تحديد الدقة...';
+    accuracyEl.textContent = '...';
     geoWatchId = navigator.geolocation.watchPosition(
         (pos) => {
             const acc = pos.coords.accuracy;
@@ -205,56 +205,48 @@ async function downloadPdf(id) {
         ['الولاية', data.state || ''],
         ['وصف موقع الحادث', data.location || '']
     ];
+    const startX = 10;
     const labelW = 60;
     const valueW = 130;
-    const headerTableW = labelW + valueW;
-    const startXHeader = (210 - headerTableW) / 2;
     let y = 45;
     headerRows.forEach(([label, value]) => {
-        doc.rect(startXHeader, y, valueW, 8);
-        doc.rect(startXHeader + valueW, y, labelW, 8);
-        doc.text(value, startXHeader + valueW - 2, y + 5, { align: 'right' });
-        doc.text(label, startXHeader + valueW + labelW - 2, y + 5, { align: 'right' });
+        doc.rect(startX, y, valueW, 8);
+        doc.rect(startX + valueW, y, labelW, 8);
+        doc.text(value, startX + valueW - 2, y + 5, { align: 'right' });
+        doc.text(label, startX + valueW + labelW - 2, y + 5, { align: 'right' });
         y += 8;
     });
-    const maxTableW = Math.max(headerTableW, 180);
-    const startXLine = (210 - maxTableW) / 2;
-    const lineSpacing = 6;
-    y += lineSpacing / 2;
-    doc.setLineWidth(0.8);
-    doc.line(startXLine, y, startXLine + maxTableW, y);
-    doc.setLineWidth(0.2);
-    y += lineSpacing / 2;
+    y += 2;
+    doc.line(10, y, 200, y);
+    y += 8;
 
     const colWTotal = 50;
     const colWQty = 30;
     const colWCost = 30;
     const colWDesc = 70;
-    const itemsTableW = colWTotal + colWQty + colWCost + colWDesc;
-    const startXItems = (210 - itemsTableW) / 2;
 
     function drawItemRow(desc, cost, qty, total) {
-        doc.rect(startXItems, y, colWTotal, 8);
-        doc.rect(startXItems + colWTotal, y, colWQty, 8);
-        doc.rect(startXItems + colWTotal + colWQty, y, colWCost, 8);
-        doc.rect(startXItems + colWTotal + colWQty + colWCost, y, colWDesc, 8);
-        doc.text(total, startXItems + colWTotal - 2, y + 5, { align: 'right' });
-        doc.text(qty, startXItems + colWTotal + colWQty - 2, y + 5, { align: 'right' });
-        doc.text(cost, startXItems + colWTotal + colWQty + colWCost - 2, y + 5, { align: 'right' });
-        doc.text(desc, startXItems + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5, { align: 'right' });
+        doc.rect(startX, y, colWTotal, 8);
+        doc.rect(startX + colWTotal, y, colWQty, 8);
+        doc.rect(startX + colWTotal + colWQty, y, colWCost, 8);
+        doc.rect(startX + colWTotal + colWQty + colWCost, y, colWDesc, 8);
+        doc.text(total, startX + colWTotal - 2, y + 5, { align: 'right' });
+        doc.text(qty, startX + colWTotal + colWQty - 2, y + 5, { align: 'right' });
+        doc.text(cost, startX + colWTotal + colWQty + colWCost - 2, y + 5, { align: 'right' });
+        doc.text(desc, startX + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5, { align: 'right' });
         y += 8;
     }
 
     drawItemRow('الوصف', 'التكلفة', 'الكمية', 'المجموع');
     data.items.forEach(it => {
-        drawItemRow(it.description, `${it.cost.toFixed(2)} OMR`, String(it.quantity), `${it.line_total.toFixed(2)} OMR`);
+        drawItemRow(it.description, it.cost.toFixed(2), String(it.quantity), it.line_total.toFixed(2));
         if (y > 270) {
             doc.addPage();
             y = 20;
         }
     });
     y += 8;
-    doc.text(`المجموع الكلي: ${data.total.toFixed(2)} OMR`, startXItems + itemsTableW - 2, y, { align: 'right' });
+    doc.text(`المجموع الكلي: $${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
     doc.save(`report-${id}.pdf`);
 }
 
