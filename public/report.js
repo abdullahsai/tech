@@ -137,6 +137,44 @@ function discardReport() {
     loadItems(document.getElementById('categorySelect').value);
 }
 
+let geoWatchId = null;
+
+function getCoords() {
+    const coordsInput = document.getElementById('coordinates');
+    const accuracyEl = document.getElementById('accuracyCounter');
+    if (!navigator.geolocation) {
+        alert('المتصفح لا يدعم تحديد الموقع');
+        return;
+    }
+    if (geoWatchId !== null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+    }
+    accuracyEl.textContent = 'جاري تحديد الدقة...';
+    geoWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const acc = pos.coords.accuracy;
+            accuracyEl.textContent = `الدقة ${acc.toFixed(1)}م`;
+            if (acc <= 5) {
+                const lat = pos.coords.latitude.toFixed(6);
+                const lon = pos.coords.longitude.toFixed(6);
+                coordsInput.value = `${lat}, ${lon}`;
+                accuracyEl.textContent = '';
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+        },
+        () => {
+            alert('فشل الحصول على الإحداثيات');
+            accuracyEl.textContent = '';
+            if (geoWatchId !== null) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+        },
+        { enableHighAccuracy: true }
+    );
+}
+
 async function downloadPdf(id) {
     const res = await fetch(`/api/report/${id}`);
     const data = await res.json();
@@ -159,38 +197,55 @@ async function downloadPdf(id) {
     doc.setFontSize(16);
     doc.text('إستمارة تقييم أضرار', 105, 20, { align: 'center' });
     doc.setFontSize(12);
+    const headerRows = [
+        ['رقم التقرير', String(id)],
+        ['المشرف / المهندس', data.supervisor || ''],
+        ['رقم مرجع الشرطة', data.police_report || ''],
+        ['اسم الطريق', data.street || ''],
+        ['الولاية', data.state || ''],
+        ['وصف موقع الحادث', data.location || '']
+    ];
+    const startX = 10;
+    const labelW = 60;
+    const valueW = 130;
     let y = 45;
-    doc.text(`رقم التقرير: ${id}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`المشرف / المهندس: ${data.supervisor || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`رقم مرجع الشرطة: ${data.police_report || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`اسم الطريق: ${data.street || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`الولاية: ${data.state || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`وصف موقع الحادث: ${data.location || ''}`, 200 - 10, y, { align: 'right' });
-    y += 8;
+    headerRows.forEach(([label, value]) => {
+        doc.rect(startX, y, valueW, 8);
+        doc.rect(startX + valueW, y, labelW, 8);
+        doc.text(value, startX + valueW - 2, y + 5, { align: 'right' });
+        doc.text(label, startX + valueW + labelW - 2, y + 5, { align: 'right' });
+        y += 8;
+    });
+    y += 4;
     doc.line(10, y, 200, y);
-    y += 6;
-    doc.text('الوصف', 190, y, { align: 'right' });
-    doc.text('التكلفة', 120, y, { align: 'right' });
-    doc.text('الكمية', 90, y, { align: 'right' });
-    doc.text('المجموع', 60, y, { align: 'right' });
-    y += 6;
+    y += 8;
+
+    const colWTotal = 50;
+    const colWQty = 30;
+    const colWCost = 30;
+    const colWDesc = 70;
+
+    function drawItemRow(desc, cost, qty, total) {
+        doc.rect(startX, y, colWTotal, 8);
+        doc.rect(startX + colWTotal, y, colWQty, 8);
+        doc.rect(startX + colWTotal + colWQty, y, colWCost, 8);
+        doc.rect(startX + colWTotal + colWQty + colWCost, y, colWDesc, 8);
+        doc.text(total, startX + colWTotal - 2, y + 5, { align: 'right' });
+        doc.text(qty, startX + colWTotal + colWQty - 2, y + 5, { align: 'right' });
+        doc.text(cost, startX + colWTotal + colWQty + colWCost - 2, y + 5, { align: 'right' });
+        doc.text(desc, startX + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5, { align: 'right' });
+        y += 8;
+    }
+
+    drawItemRow('الوصف', 'التكلفة', 'الكمية', 'المجموع');
     data.items.forEach(it => {
-        doc.text(it.description, 190, y, { align: 'right' });
-        doc.text(it.cost.toFixed(2), 120, y, { align: 'right' });
-        doc.text(String(it.quantity), 90, y, { align: 'right' });
-        doc.text(it.line_total.toFixed(2), 60, y, { align: 'right' });
-        y += 6;
+        drawItemRow(it.description, it.cost.toFixed(2), String(it.quantity), it.line_total.toFixed(2));
         if (y > 270) {
             doc.addPage();
             y = 20;
         }
     });
-    y += 6;
+    y += 8;
     doc.text(`المجموع الكلي: $${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
     doc.save(`report-${id}.pdf`);
 }
@@ -204,4 +259,5 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reportForm').addEventListener('submit', handleSubmit);
     document.getElementById('addItemsBtn').addEventListener('click', addItems);
     document.getElementById('discardBtn').addEventListener('click', discardReport);
+    document.getElementById('getCoordsBtn').addEventListener('click', getCoords);
 });
