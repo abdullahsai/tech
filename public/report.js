@@ -149,7 +149,7 @@ function getCoords() {
     if (geoWatchId !== null) {
         navigator.geolocation.clearWatch(geoWatchId);
     }
-    accuracyEl.textContent = 'جاري تحديد الدقة...';
+    accuracyEl.textContent = '...';
     geoWatchId = navigator.geolocation.watchPosition(
         (pos) => {
             const acc = pos.coords.accuracy;
