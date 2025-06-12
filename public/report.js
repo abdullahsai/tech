@@ -149,7 +149,7 @@ function getCoords() {
     if (geoWatchId !== null) {
         navigator.geolocation.clearWatch(geoWatchId);
     }
-    accuracyEl.textContent = 'جاري تحديد الدقة...';
+    accuracyEl.textContent = '...';
     geoWatchId = navigator.geolocation.watchPosition(
         (pos) => {
             const acc = pos.coords.accuracy;
@@ -216,7 +216,7 @@ async function downloadPdf(id) {
         doc.text(label, startX + valueW + labelW - 2, y + 5, { align: 'right' });
         y += 8;
     });
-    y += 4;
+    y += 2;
     doc.line(10, y, 200, y);
     y += 8;
 
