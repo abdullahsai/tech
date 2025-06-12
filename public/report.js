@@ -137,6 +137,44 @@ function discardReport() {
     loadItems(document.getElementById('categorySelect').value);
 }
 
+let geoWatchId = null;
+
+function getCoords() {
+    const coordsInput = document.getElementById('coordinates');
+    const accuracyEl = document.getElementById('accuracyCounter');
+    if (!navigator.geolocation) {
+        alert('المتصفح لا يدعم تحديد الموقع');
+        return;
+    }
+    if (geoWatchId !== null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+    }
+    accuracyEl.textContent = 'جاري تحديد الدقة...';
+    geoWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const acc = pos.coords.accuracy;
+            accuracyEl.textContent = `الدقة ${acc.toFixed(1)}م`;
+            if (acc <= 5) {
+                const lat = pos.coords.latitude.toFixed(6);
+                const lon = pos.coords.longitude.toFixed(6);
+                coordsInput.value = `${lat}, ${lon}`;
+                accuracyEl.textContent = '';
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+        },
+        () => {
+            alert('فشل الحصول على الإحداثيات');
+            accuracyEl.textContent = '';
+            if (geoWatchId !== null) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+        },
+        { enableHighAccuracy: true }
+    );
+}
+
 async function downloadPdf(id) {
     const res = await fetch(`/api/report/${id}`);
     const data = await res.json();
@@ -159,19 +197,26 @@ async function downloadPdf(id) {
     doc.setFontSize(16);
     doc.text('إستمارة تقييم أضرار', 105, 20, { align: 'center' });
     doc.setFontSize(12);
+    const headerRows = [
+        ['رقم التقرير', String(id)],
+        ['المشرف / المهندس', data.supervisor || ''],
+        ['رقم مرجع الشرطة', data.police_report || ''],
+        ['اسم الطريق', data.street || ''],
+        ['الولاية', data.state || ''],
+        ['وصف موقع الحادث', data.location || '']
+    ];
+    const startX = 10;
+    const labelW = 60;
+    const valueW = 130;
     let y = 45;
-    doc.text(`رقم التقرير: ${id}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`المشرف / المهندس: ${data.supervisor || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`رقم مرجع الشرطة: ${data.police_report || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`اسم الطريق: ${data.street || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`الولاية: ${data.state || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`وصف موقع الحادث: ${data.location || ''}`, 200 - 10, y, { align: 'right' });
-    y += 8;
+    headerRows.forEach(([label, value]) => {
+        doc.rect(startX, y, valueW, 8);
+        doc.rect(startX + valueW, y, labelW, 8);
+        doc.text(value, startX + valueW - 2, y + 5, { align: 'right' });
+        doc.text(label, startX + valueW + labelW - 2, y + 5, { align: 'right' });
+        y += 8;
+    });
+    y += 2;
     doc.line(10, y, 200, y);
     y += 6;
     doc.text('الوصف', 190, y, { align: 'right' });
@@ -204,4 +249,5 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reportForm').addEventListener('submit', handleSubmit);
     document.getElementById('addItemsBtn').addEventListener('click', addItems);
     document.getElementById('discardBtn').addEventListener('click', discardReport);
+    document.getElementById('getCoordsBtn').addEventListener('click', getCoords);
 });
