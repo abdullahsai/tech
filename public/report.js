@@ -216,9 +216,11 @@ async function downloadPdf(id) {
         doc.text(label, startX + valueW + labelW - 2, y + 5, { align: 'right' });
         y += 8;
     });
-    y += 2;
+    y += 5;
+    doc.setLineWidth(0.8);
     doc.line(10, y, 200, y);
-    y += 8;
+    doc.setLineWidth(0.200025);
+    y += 5;
 
     const colWTotal = 50;
     const colWQty = 30;
