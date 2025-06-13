@@ -250,7 +250,7 @@ async function downloadPdf(id) {
         }
     });
     y += 8;
-    doc.text(`المجموع الكلي: $${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
+    doc.text(`المجموع الكلي: OMR${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
     doc.save(`report-${id}.pdf`);
 }
 
