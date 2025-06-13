@@ -15,6 +15,11 @@ app.get('/report', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'report.html'));
 });
 
+// Serve archive page showing all stored reports
+app.get('/doc', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'doc.html'));
+});
+
 // Initialize SQLite database
 const db = new sqlite3.Database('./data.db', (err) => {
   if (err) {
@@ -164,6 +169,24 @@ app.get('/api/report', (req, res) => {
                   GROUP BY r.id
                   ORDER BY r.created_at DESC
                   LIMIT 5`;
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Failed to retrieve reports' });
+    }
+    res.json(rows);
+  });
+});
+
+// Endpoint to get all reports with totals
+app.get('/api/report/all', (req, res) => {
+  const query = `SELECT r.id, r.created_at,
+                        SUM(ri.quantity * i.cost) AS total
+                   FROM reports r
+                   JOIN report_items ri ON ri.report_id = r.id
+                   JOIN items i ON ri.item_id = i.id
+                  GROUP BY r.id
+                  ORDER BY r.created_at DESC`;
   db.all(query, [], (err, rows) => {
     if (err) {
       console.error(err);
