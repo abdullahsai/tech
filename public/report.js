@@ -19,10 +19,10 @@ async function loadItems(category) {
         row.className = 'row g-2 align-items-center mb-2';
         row.innerHTML = `
             <div class="col-sm-6 col-md-4">
-                <label class="form-label">${item.description} ($${item.cost}/${item.unit})</label>
+                <label class="form-label">${item.description} (${item.cost} OMR/${item.unit})</label>
             </div>
             <div class="col-sm-3 col-md-2">
-                <input type="number" min="0" step="1" data-id="${item.id}" class="form-control" placeholder="Qty">
+                <input type="number" min="0" step="1" data-id="${item.id}" class="form-control" placeholder="الكمية">
             </div>`;
         container.appendChild(row);
     });
