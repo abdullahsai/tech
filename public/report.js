@@ -19,10 +19,10 @@ async function loadItems(category) {
         row.className = 'row g-2 align-items-center mb-2';
         row.innerHTML = `
             <div class="col-sm-6 col-md-4">
-                <label class="form-label">${item.description} ($${item.cost}/${item.unit})</label>
+                <label class="form-label">${item.description} (${item.cost} OMR/${item.unit})</label>
             </div>
             <div class="col-sm-3 col-md-2">
-                <input type="number" min="0" step="1" data-id="${item.id}" class="form-control" placeholder="Qty">
+                <input type="number" min="0" step="1" data-id="${item.id}" class="form-control" placeholder="الكمية">
             </div>`;
         container.appendChild(row);
     });
@@ -137,6 +137,44 @@ function discardReport() {
     loadItems(document.getElementById('categorySelect').value);
 }
 
+let geoWatchId = null;
+
+function getCoords() {
+    const coordsInput = document.getElementById('coordinates');
+    const accuracyEl = document.getElementById('accuracyCounter');
+    if (!navigator.geolocation) {
+        alert('المتصفح لا يدعم تحديد الموقع');
+        return;
+    }
+    if (geoWatchId !== null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+    }
+    accuracyEl.textContent = 'جاري تحديد الدقة...';
+    geoWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+            const acc = pos.coords.accuracy;
+            accuracyEl.textContent = `الدقة ${acc.toFixed(1)}م`;
+            if (acc <= 5) {
+                const lat = pos.coords.latitude.toFixed(6);
+                const lon = pos.coords.longitude.toFixed(6);
+                coordsInput.value = `${lat}, ${lon}`;
+                accuracyEl.textContent = '';
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+        },
+        () => {
+            alert('فشل الحصول على الإحداثيات');
+            accuracyEl.textContent = '';
+            if (geoWatchId !== null) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+        },
+        { enableHighAccuracy: true }
+    );
+}
+
 async function downloadPdf(id) {
     const res = await fetch(`/api/report/${id}`);
     const data = await res.json();
@@ -159,39 +197,65 @@ async function downloadPdf(id) {
     doc.setFontSize(16);
     doc.text('إستمارة تقييم أضرار', 105, 20, { align: 'center' });
     doc.setFontSize(12);
+    const headerRows = [
+        ['رقم التقرير', String(id)],
+        ['المشرف / المهندس', data.supervisor || ''],
+        ['رقم مرجع الشرطة', data.police_report || ''],
+        ['اسم الطريق', data.street || ''],
+        ['الولاية', data.state || ''],
+        ['وصف موقع الحادث', data.location || '']
+    ];
+    const labelW = 60;
+    const valueW = 130;
+    const headerTableW = labelW + valueW;
+    const startXHeader = (210 - headerTableW) / 2;
     let y = 45;
-    doc.text(`رقم التقرير: ${id}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`المشرف / المهندس: ${data.supervisor || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`رقم مرجع الشرطة: ${data.police_report || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`اسم الطريق: ${data.street || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`الولاية: ${data.state || ''}`, 200 - 10, y, { align: 'right' });
-    y += 6;
-    doc.text(`وصف موقع الحادث: ${data.location || ''}`, 200 - 10, y, { align: 'right' });
-    y += 8;
-    doc.line(10, y, 200, y);
-    y += 6;
-    doc.text('الوصف', 190, y, { align: 'right' });
-    doc.text('التكلفة', 120, y, { align: 'right' });
-    doc.text('الكمية', 90, y, { align: 'right' });
-    doc.text('المجموع', 60, y, { align: 'right' });
-    y += 6;
+    headerRows.forEach(([label, value]) => {
+        doc.rect(startXHeader, y, valueW, 8);
+        doc.rect(startXHeader + valueW, y, labelW, 8);
+        doc.text(value, startXHeader + valueW - 2, y + 5, { align: 'right' });
+        doc.text(label, startXHeader + valueW + labelW - 2, y + 5, { align: 'right' });
+        y += 8;
+    });
+    const colWTotal = 50;
+    const colWQty = 30;
+    const colWCost = 30;
+    const colWDesc = 70;
+    const itemsTableW = colWTotal + colWQty + colWCost + colWDesc;
+
+    const dividerW = Math.max(headerTableW, itemsTableW);
+    const startXLine = (210 - dividerW) / 2;
+    const lineSpacing = 8;
+    y += lineSpacing / 2;
+    doc.setLineWidth(1.5);
+    doc.line(startXLine, y, startXLine + dividerW, y);
+    doc.setLineWidth(0.2);
+    y += lineSpacing / 2;
+
+    const startXItems = (210 - itemsTableW) / 2;
+
+    function drawItemRow(desc, cost, qty, total) {
+        doc.rect(startXItems, y, colWTotal, 8);
+        doc.rect(startXItems + colWTotal, y, colWQty, 8);
+        doc.rect(startXItems + colWTotal + colWQty, y, colWCost, 8);
+        doc.rect(startXItems + colWTotal + colWQty + colWCost, y, colWDesc, 8);
+        doc.text(total, startXItems + colWTotal - 2, y + 5, { align: 'right' });
+        doc.text(qty, startXItems + colWTotal + colWQty - 2, y + 5, { align: 'right' });
+        doc.text(cost, startXItems + colWTotal + colWQty + colWCost - 2, y + 5, { align: 'right' });
+        doc.text(desc, startXItems + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5, { align: 'right' });
+        y += 8;
+    }
+
+    drawItemRow('الوصف', 'التكلفة', 'الكمية', 'المجموع');
     data.items.forEach(it => {
-        doc.text(it.description, 190, y, { align: 'right' });
-        doc.text(it.cost.toFixed(2), 120, y, { align: 'right' });
-        doc.text(String(it.quantity), 90, y, { align: 'right' });
-        doc.text(it.line_total.toFixed(2), 60, y, { align: 'right' });
-        y += 6;
+        drawItemRow(it.description, `${it.cost.toFixed(2)} OMR`, String(it.quantity), `${it.line_total.toFixed(2)} OMR`);
         if (y > 270) {
             doc.addPage();
             y = 20;
         }
     });
-    y += 6;
-    doc.text(`المجموع الكلي: $${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
+    y += 8;
+    doc.text(`المجموع الكلي: ${data.total.toFixed(2)} OMR`, startXItems + itemsTableW - 2, y, { align: 'right' });
     doc.save(`report-${id}.pdf`);
 }
 
@@ -204,4 +268,5 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reportForm').addEventListener('submit', handleSubmit);
     document.getElementById('addItemsBtn').addEventListener('click', addItems);
     document.getElementById('discardBtn').addEventListener('click', discardReport);
+    document.getElementById('getCoordsBtn').addEventListener('click', getCoords);
 });
