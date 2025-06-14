@@ -74,8 +74,19 @@ function renderCurrentItems() {
     tbody.innerHTML = '';
     currentItems.forEach((it, idx) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${it.description}</td><td>${it.quantity}</td>`;
+        tr.innerHTML = `
+            <td>${it.description}</td>
+            <td>${it.quantity}</td>
+            <td><button class="btn btn-sm btn-danger" data-idx="${idx}">&times;</button></td>
+        `;
         tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('button[data-idx]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const i = parseInt(btn.dataset.idx);
+            currentItems.splice(i, 1);
+            renderCurrentItems();
+        });
     });
 }
 
