@@ -74,8 +74,19 @@ function renderCurrentItems() {
     tbody.innerHTML = '';
     currentItems.forEach((it, idx) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${it.description}</td><td>${it.quantity}</td>`;
+        tr.innerHTML = `
+            <td>${it.description}</td>
+            <td>${it.quantity}</td>
+            <td><button class="btn btn-sm btn-danger" data-idx="${idx}">&times;</button></td>
+        `;
         tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('button[data-idx]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const i = parseInt(btn.dataset.idx);
+            currentItems.splice(i, 1);
+            renderCurrentItems();
+        });
     });
 }
 
@@ -216,24 +227,28 @@ async function downloadPdf(id) {
         doc.text(label, startX + valueW + labelW - 2, y + 5, { align: 'right' });
         y += 8;
     });
-    y += 2;
+    y += 5;
+    doc.setLineWidth(0.8);
     doc.line(10, y, 200, y);
-    y += 8;
+    doc.setLineWidth(0.200025);
+    y += 5;
 
     const colWTotal = 50;
     const colWQty = 30;
     const colWCost = 30;
     const colWDesc = 70;
+    const tableW = colWTotal + colWQty + colWCost + colWDesc;
+    const itemStartX = (doc.internal.pageSize.getWidth() - tableW) / 2;
 
     function drawItemRow(desc, cost, qty, total) {
-        doc.rect(startX, y, colWTotal, 8);
-        doc.rect(startX + colWTotal, y, colWQty, 8);
-        doc.rect(startX + colWTotal + colWQty, y, colWCost, 8);
-        doc.rect(startX + colWTotal + colWQty + colWCost, y, colWDesc, 8);
-        doc.text(total, startX + colWTotal - 2, y + 5, { align: 'right' });
-        doc.text(qty, startX + colWTotal + colWQty - 2, y + 5, { align: 'right' });
-        doc.text(cost, startX + colWTotal + colWQty + colWCost - 2, y + 5, { align: 'right' });
-        doc.text(desc, startX + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5, { align: 'right' });
+        doc.rect(itemStartX, y, colWTotal, 8);
+        doc.rect(itemStartX + colWTotal, y, colWQty, 8);
+        doc.rect(itemStartX + colWTotal + colWQty, y, colWCost, 8);
+        doc.rect(itemStartX + colWTotal + colWQty + colWCost, y, colWDesc, 8);
+        doc.text(total, itemStartX + colWTotal - 2, y + 5, { align: 'right' });
+        doc.text(qty, itemStartX + colWTotal + colWQty - 2, y + 5, { align: 'right' });
+        doc.text(cost, itemStartX + colWTotal + colWQty + colWCost - 2, y + 5, { align: 'right' });
+        doc.text(desc, itemStartX + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5, { align: 'right' });
         y += 8;
     }
 
@@ -246,7 +261,7 @@ async function downloadPdf(id) {
         }
     });
     y += 8;
-    doc.text(`المجموع الكلي: $${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
+    doc.text(`المجموع الكلي: OMR${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
     doc.save(`report-${id}.pdf`);
 }
 
