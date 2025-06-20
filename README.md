@@ -1,6 +1,6 @@
 # Roads Webapp
 
-This is a simple Node.js/Express web application with an SQLite database for managing items. The database file lives in the `data` directory so it can be mounted as a persistent volume. The interface is now in Arabic and uses a right-to-left layout. Each item consists of:
+This is a simple Node.js/Express web application with an SQLite database for managing items. The database file lives at `data/data.db` so it can be mounted as a persistent volume. The interface is now in Arabic and uses a right-to-left layout. Each item consists of:
 
 - **Category**
 - **Description**
@@ -38,6 +38,6 @@ docker run -p 3000:3000 roads-app
 2. From your CapRover dashboard, create a new app.
 3. In the app settings, enable deployment via Git and follow the instructions to connect the repository.
 4. Deploy the app; CapRover will build the Dockerfile and run the container.
-5. Create a persistent directory for `./data` so the `data.db` database survives restarts.
+5. Create a persistent directory for `./data` so the `data/data.db` database survives restarts.
 
 For more details, see the [CapRover documentation](https://caprover.com/docs/complete-webapp-tutorial.html).
