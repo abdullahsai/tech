@@ -21,8 +21,13 @@ app.get('/doc', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'doc.html'));
 });
 
-// Initialize SQLite database
-const db = new sqlite3.Database('./data.db', (err) => {
+// Initialize SQLite database in ./data/data.db
+const dbDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir);
+}
+const dbPath = path.join(dbDir, 'data.db');
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database', err.message);
   } else {
