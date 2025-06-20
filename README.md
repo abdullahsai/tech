@@ -38,6 +38,6 @@ docker run -p 3000:3000 roads-app
 2. From your CapRover dashboard, create a new app.
 3. In the app settings, enable deployment via Git and follow the instructions to connect the repository.
 4. Deploy the app; CapRover will build the Dockerfile and run the container.
-5. Create a persistent directory for `./data` so the `data/data.db` database survives restarts.
+5. Mount a persistent volume at `/app/data` so the `data/data.db` database survives restarts.
 
 For more details, see the [CapRover documentation](https://caprover.com/docs/complete-webapp-tutorial.html).
