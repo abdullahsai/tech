@@ -153,6 +153,7 @@ let geoWatchId = null;
 function getCoords() {
     const coordsInput = document.getElementById('coordinates');
     const accuracyEl = document.getElementById('accuracyCounter');
+    const olc = new OpenLocationCode();
     if (!navigator.geolocation) {
         alert('المتصفح لا يدعم تحديد الموقع');
         return;
@@ -166,9 +167,10 @@ function getCoords() {
             const acc = pos.coords.accuracy;
             accuracyEl.textContent = `الدقة ${acc.toFixed(1)}م`;
             if (acc <= 5) {
-                const lat = pos.coords.latitude.toFixed(6);
-                const lon = pos.coords.longitude.toFixed(6);
-                coordsInput.value = `${lat}, ${lon}`;
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const code = olc.encode(lat, lon);
+                coordsInput.value = code;
                 accuracyEl.textContent = '';
                 navigator.geolocation.clearWatch(geoWatchId);
                 geoWatchId = null;
