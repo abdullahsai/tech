@@ -118,6 +118,7 @@ async function handleSubmit(e) {
     const street = document.getElementById('street').value;
     const state = document.getElementById('state').value;
     const location = document.getElementById('location').value;
+    const coordinates = document.getElementById('coordinates').value;
     const res = await fetch('/api/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,6 +128,7 @@ async function handleSubmit(e) {
             street,
             state,
             location,
+            coordinates,
             items: payload
         })
     });
@@ -216,7 +218,8 @@ async function downloadPdf(id) {
         ['رقم مرجع الشرطة', data.police_report || ''],
         ['اسم الطريق', data.street || ''],
         ['الولاية', data.state || ''],
-        ['وصف موقع الحادث', data.location || '']
+        ['وصف موقع الحادث', data.location || ''],
+        ['الإحداثيات', data.coordinates || '']
     ];
     const startX = 10;
     const labelW = 60;

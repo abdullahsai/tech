@@ -55,7 +55,8 @@ async function downloadPdf(id) {
         ['رقم مرجع الشرطة', data.police_report || ''],
         ['اسم الطريق', data.street || ''],
         ['الولاية', data.state || ''],
-        ['وصف موقع الحادث', data.location || '']
+        ['وصف موقع الحادث', data.location || ''],
+        ['الإحداثيات', data.coordinates || '']
     ];
     const startX = 10;
     const labelW = 60;
