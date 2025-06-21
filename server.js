@@ -83,6 +83,42 @@ app.post('/api/items', (req, res) => {
   });
 });
 
+// Endpoint to update an existing item
+app.put('/api/items/:id', (req, res) => {
+  const { category, description, unit, cost } = req.body;
+  if (!category || !description || !unit || !cost) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  db.run(
+    'UPDATE items SET category = ?, description = ?, unit = ?, cost = ? WHERE id = ?',
+    [category, description, unit, cost, req.params.id],
+    function (err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Failed to update item' });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Item not found' });
+      }
+      res.json({ success: true });
+    }
+  );
+});
+
+// Endpoint to delete an item
+app.delete('/api/items/:id', (req, res) => {
+  db.run('DELETE FROM items WHERE id = ?', [req.params.id], function (err) {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Failed to delete item' });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    res.json({ success: true });
+  });
+});
+
 // Endpoint to list distinct item categories
 app.get('/api/items/categories', (req, res) => {
   db.all('SELECT DISTINCT category FROM items ORDER BY category', [], (err, rows) => {
