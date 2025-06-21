@@ -21,6 +21,11 @@ app.get('/doc', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'doc.html'));
 });
 
+// Serve admin page for bulk item upload
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // Initialize SQLite database in ./data/data.db
 const dbDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dbDir)) {
@@ -108,6 +113,28 @@ app.post('/api/items', (req, res) => {
       return res.status(500).json({ error: 'Failed to add item' });
     }
     res.json({ id: this.lastID });
+  });
+});
+
+// Endpoint to add many items at once
+app.post('/api/items/bulk', (req, res) => {
+  const { items } = req.body; // [{ category, description, unit, cost }]
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'items must be a non-empty array' });
+  }
+  const stmt = db.prepare(
+    'INSERT INTO items (category, description, unit, cost) VALUES (?, ?, ?, ?)'
+  );
+  for (const it of items) {
+    if (!it.category || !it.description || !it.unit || !it.cost) continue;
+    stmt.run([it.category, it.description, it.unit, it.cost]);
+  }
+  stmt.finalize(err => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Failed to save items' });
+    }
+    res.json({ success: true });
   });
 });
 
