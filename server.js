@@ -49,6 +49,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
         street TEXT,
         state TEXT,
         location TEXT,
+        coordinates TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`
     );
@@ -78,6 +79,15 @@ const db = new sqlite3.Database(dbPath, (err) => {
       }
       if (!cols.includes('cost')) {
         db.run('ALTER TABLE report_items ADD COLUMN cost REAL');
+      }
+    });
+
+    // Add coordinates column to reports if missing
+    db.all('PRAGMA table_info(reports)', (err, rows) => {
+      if (err) return;
+      const cols = rows.map(r => r.name);
+      if (!cols.includes('coordinates')) {
+        db.run('ALTER TABLE reports ADD COLUMN coordinates TEXT');
       }
     });
   }
@@ -186,6 +196,7 @@ app.post('/api/report', (req, res) => {
     street,
     state,
     location,
+    coordinates,
     items,
   } = req.body; // [{ itemId, quantity }]
   if (!Array.isArray(items) || items.length === 0) {
@@ -193,8 +204,8 @@ app.post('/api/report', (req, res) => {
   }
 
   db.run(
-    'INSERT INTO reports (supervisor, police_report, street, state, location) VALUES (?, ?, ?, ?, ?)',
-    [supervisor, police_report, street, state, location],
+    'INSERT INTO reports (supervisor, police_report, street, state, location, coordinates) VALUES (?, ?, ?, ?, ?, ?)',
+    [supervisor, police_report, street, state, location, coordinates],
     function (err) {
       if (err) {
         console.error(err);
@@ -288,7 +299,7 @@ app.get('/api/report/all', (req, res) => {
 // Endpoint to get detailed info for a single report
 app.get('/api/report/:id', (req, res) => {
   const { id } = req.params;
-  const infoQuery = `SELECT supervisor, police_report, street, state, location, created_at FROM reports WHERE id = ?`;
+  const infoQuery = `SELECT supervisor, police_report, street, state, location, coordinates, created_at FROM reports WHERE id = ?`;
   const itemsQuery = `SELECT description, cost, unit, quantity,
                              (quantity * cost) AS line_total
                         FROM report_items
