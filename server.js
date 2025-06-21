@@ -57,11 +57,29 @@ const db = new sqlite3.Database(dbPath, (err) => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         report_id INTEGER NOT NULL,
         item_id INTEGER NOT NULL,
+        description TEXT,
+        unit TEXT,
+        cost REAL,
         quantity REAL NOT NULL,
         FOREIGN KEY(report_id) REFERENCES reports(id),
         FOREIGN KEY(item_id) REFERENCES items(id)
       )`
     );
+
+    // Add snapshot columns if database was created with old schema
+    db.all('PRAGMA table_info(report_items)', (err, rows) => {
+      if (err) return;
+      const cols = rows.map(r => r.name);
+      if (!cols.includes('description')) {
+        db.run('ALTER TABLE report_items ADD COLUMN description TEXT');
+      }
+      if (!cols.includes('unit')) {
+        db.run('ALTER TABLE report_items ADD COLUMN unit TEXT');
+      }
+      if (!cols.includes('cost')) {
+        db.run('ALTER TABLE report_items ADD COLUMN cost REAL');
+      }
+    });
   }
 });
 
@@ -178,36 +196,66 @@ app.post('/api/report', (req, res) => {
     'INSERT INTO reports (supervisor, police_report, street, state, location) VALUES (?, ?, ?, ?, ?)',
     [supervisor, police_report, street, state, location],
     function (err) {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: 'Failed to create report' });
-    }
-    const reportId = this.lastID;
-    const stmt = db.prepare(
-      'INSERT INTO report_items (report_id, item_id, quantity) VALUES (?, ?, ?)'
-    );
-    for (const entry of items) {
-      const { itemId, quantity } = entry;
-      if (!itemId || !quantity || isNaN(quantity) || quantity <= 0) continue;
-      stmt.run(reportId, itemId, quantity);
-    }
-    stmt.finalize((err2) => {
-      if (err2) {
-        console.error(err2);
-        return res.status(500).json({ error: 'Failed to save report items' });
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Failed to create report' });
       }
-      res.json({ reportId });
-    });
-  });
+      const reportId = this.lastID;
+      const stmt = db.prepare(
+        'INSERT INTO report_items (report_id, item_id, description, unit, cost, quantity) VALUES (?, ?, ?, ?, ?, ?)'
+      );
+      let pending = 0;
+
+      function done() {
+        pending--;
+        if (pending === 0) finalize();
+      }
+
+      function finalize() {
+        stmt.finalize((err2) => {
+          if (err2) {
+            console.error(err2);
+            return res.status(500).json({ error: 'Failed to save report items' });
+          }
+          res.json({ reportId });
+        });
+      }
+
+      for (const entry of items) {
+        const { itemId, quantity } = entry;
+        if (!itemId || !quantity || isNaN(quantity) || quantity <= 0) continue;
+        pending++;
+        db.get(
+          'SELECT description, unit, cost FROM items WHERE id = ?',
+          [itemId],
+          (err2, itemRow) => {
+            if (!err2 && itemRow) {
+              stmt.run(
+                reportId,
+                itemId,
+                itemRow.description,
+                itemRow.unit,
+                itemRow.cost,
+                quantity,
+                done
+              );
+            } else {
+              done();
+            }
+          }
+        );
+      }
+      if (pending === 0) finalize();
+    }
+  );
 });
 
 // Endpoint to get last 5 reports with totals
 app.get('/api/report', (req, res) => {
   const query = `SELECT r.id, r.created_at,
-                        SUM(ri.quantity * i.cost) AS total
+                        SUM(ri.quantity * ri.cost) AS total
                    FROM reports r
                    JOIN report_items ri ON ri.report_id = r.id
-                   JOIN items i ON ri.item_id = i.id
                   GROUP BY r.id
                   ORDER BY r.created_at DESC
                   LIMIT 5`;
@@ -223,10 +271,9 @@ app.get('/api/report', (req, res) => {
 // Endpoint to get all reports with totals
 app.get('/api/report/all', (req, res) => {
   const query = `SELECT r.id, r.created_at,
-                        SUM(ri.quantity * i.cost) AS total
+                        SUM(ri.quantity * ri.cost) AS total
                    FROM reports r
                    JOIN report_items ri ON ri.report_id = r.id
-                   JOIN items i ON ri.item_id = i.id
                   GROUP BY r.id
                   ORDER BY r.created_at DESC`;
   db.all(query, [], (err, rows) => {
@@ -242,11 +289,10 @@ app.get('/api/report/all', (req, res) => {
 app.get('/api/report/:id', (req, res) => {
   const { id } = req.params;
   const infoQuery = `SELECT supervisor, police_report, street, state, location, created_at FROM reports WHERE id = ?`;
-  const itemsQuery = `SELECT i.description, i.cost, i.unit, ri.quantity,
-                             (ri.quantity * i.cost) AS line_total
-                        FROM report_items ri
-                        JOIN items i ON ri.item_id = i.id
-                       WHERE ri.report_id = ?`;
+  const itemsQuery = `SELECT description, cost, unit, quantity,
+                             (quantity * cost) AS line_total
+                        FROM report_items
+                       WHERE report_id = ?`;
   db.get(infoQuery, [id], (err, info) => {
     if (err || !info) {
       console.error(err);
