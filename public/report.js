@@ -268,7 +268,7 @@ async function downloadPdf(id) {
     y += 8;
     doc.text(`المجموع الكلي: OMR${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
 
-    // Add signature image at the bottom right if available
+    // Add approval text and signature at the bottom right if available
     try {
         const sigRes = await fetch('/sig.png');
         if (sigRes.ok) {
@@ -278,8 +278,16 @@ async function downloadPdf(id) {
             const pageHeight = doc.internal.pageSize.getHeight();
             const sigW = 30;
             const sigH = 15;
-            doc.addImage('data:image/png;base64,' + sigBase64, 'PNG',
-                pageWidth - sigW - 10, pageHeight - sigH - 10, sigW, sigH);
+            const sigX = pageWidth - sigW - 10;
+            const sigY = pageHeight - sigH - 10;
+
+            // First line above the signature
+            doc.text('يعتمد ،،،', sigX - 2, sigY - 5, { align: 'right' });
+            // Second line with the engineer title and colon before the signature
+            doc.text('- المهندس / مشرف الصيانة :', sigX - 2, sigY + sigH - 2, { align: 'right' });
+
+            // Signature image
+            doc.addImage('data:image/png;base64,' + sigBase64, 'PNG', sigX, sigY, sigW, sigH);
         }
     } catch (e) {
         console.warn('signature missing or failed to load');
