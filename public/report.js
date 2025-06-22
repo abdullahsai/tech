@@ -282,9 +282,9 @@ async function downloadPdf(id) {
             const sigY = pageHeight - sigH - 10;
 
             // First line above the signature
-            doc.text('يعتمد ،،،', sigX - 2, sigY - 5, { align: 'right' });
+            doc.text('يعتمد ؜،،،', sigX - 2, sigY - 5, { align: 'right' });
             // Second line with the engineer title and colon before the signature
-            doc.text('- المهندس / مشرف الصيانة :', sigX - 2, sigY + sigH - 2, { align: 'right' });
+            doc.text('- المهندس / مشرف الصيانة ؜:', sigX - 2, sigY + sigH - 2, { align: 'right' });
 
             // Signature image
             doc.addImage('data:image/png;base64,' + sigBase64, 'PNG', sigX, sigY, sigW, sigH);
