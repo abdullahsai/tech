@@ -13,7 +13,7 @@ An extra admin interface is available at `/admin` where you can upload a plain t
 
 Saved reports keep a snapshot of every item's description, unit and cost. Editing or deleting items later will not alter the information shown in previous reports.
 
-The repository includes placeholder files at `public/amiri.ttf` and `public/logo.png`. Before exporting PDFs, download the real Amiri font from the [official releases](https://github.com/aliftype/amiri/releases) and place your 333 × 333 PNG logo in these paths, replacing the placeholders.
+The repository includes placeholder files at `public/amiri.ttf`, `public/logo.png` and `public/sig.png`. Before exporting PDFs, download the real Amiri font from the [official releases](https://github.com/aliftype/amiri/releases), place your 333 × 333 PNG logo at `public/logo.png`, and replace `public/sig.png` with your signature image. The signature will appear in the bottom‑right corner of generated reports.
 
 ## Development
 
