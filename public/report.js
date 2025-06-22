@@ -267,6 +267,24 @@ async function downloadPdf(id) {
     });
     y += 8;
     doc.text(`المجموع الكلي: OMR${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
+
+    // Add signature image at the bottom right if available
+    try {
+        const sigRes = await fetch('/sig.png');
+        if (sigRes.ok) {
+            const sigBuf = await sigRes.arrayBuffer();
+            const sigBase64 = bufferToBase64(sigBuf);
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const sigW = 30;
+            const sigH = 15;
+            doc.addImage('data:image/png;base64,' + sigBase64, 'PNG',
+                pageWidth - sigW - 10, pageHeight - sigH - 10, sigW, sigH);
+        }
+    } catch (e) {
+        console.warn('signature missing or failed to load');
+    }
+
     doc.save(`report-${id}.pdf`);
 }
 
