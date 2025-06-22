@@ -268,7 +268,7 @@ async function downloadPdf(id) {
     y += 8;
     doc.text(`المجموع الكلي: OMR${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
 
-    // Add approval text and signature at the bottom right if available
+    // Add approval text and signature at the bottom center if available
     try {
         const sigRes = await fetch('/sig.png');
         if (sigRes.ok) {
@@ -278,16 +278,18 @@ async function downloadPdf(id) {
             const pageHeight = doc.internal.pageSize.getHeight();
             const sigW = 30;
             const sigH = 15;
-            const sigX = pageWidth - sigW - 10;
+            const centerX = pageWidth / 2;
+            const sigX = centerX - sigW / 2;
             const sigY = pageHeight - sigH - 10;
 
-            // Engineer title above the signature
-            const textX = pageWidth - 10;
-            doc.text('المهندس / مشرف الصيانة', textX, sigY - 5, { align: 'right' });
+            // Engineer title above the signature with a little space
+            const textY = sigY - 8; // space between text and line
+            doc.text('المهندس / مشرف الصيانة', centerX, textY, { align: 'center' });
 
             // Thick line for signing
+            const lineY = sigY - 3;
             doc.setLineWidth(1);
-            doc.line(sigX, sigY - 3, sigX + sigW, sigY - 3);
+            doc.line(centerX - sigW / 2, lineY, centerX + sigW / 2, lineY);
             doc.setLineWidth(0.200025);
 
             // Signature image
