@@ -174,9 +174,10 @@ app.delete('/api/items/:id', (req, res) => {
   });
 });
 
-// Endpoint to list distinct item categories
+// Endpoint to list distinct item categories preserving insertion order
 app.get('/api/items/categories', (req, res) => {
-  db.all('SELECT DISTINCT category FROM items ORDER BY category', [], (err, rows) => {
+  // order by first appearance using MIN(id) rather than alphabetical
+  db.all('SELECT category FROM items GROUP BY category ORDER BY MIN(id)', [], (err, rows) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: 'Failed to retrieve categories' });
