@@ -32,10 +32,14 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 const dbPath = path.join(dbDir, 'data.db');
-const db = new sqlite3.Database(dbPath, (err) => {
+const db = new sqlite3.Database(dbPath, err => {
   if (err) {
     console.error('Error opening database', err.message);
-  } else {
+    return;
+  }
+
+  // Ensure sequential execution of setup queries to avoid race conditions
+  db.serialize(() => {
     db.run(
       `CREATE TABLE IF NOT EXISTS items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +50,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`
     );
+
     db.run(
       `CREATE TABLE IF NOT EXISTS reports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,6 +63,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`
     );
+
     db.run(
       `CREATE TABLE IF NOT EXISTS report_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,7 +101,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
         db.run('ALTER TABLE reports ADD COLUMN coordinates TEXT');
       }
     });
-  }
+  });
 });
 
 // Endpoint to add new item
