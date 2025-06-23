@@ -194,7 +194,8 @@ app.get('/api/items/all', (req, res) => {
     query += ' WHERE category = ?';
     params.push(category);
   }
-  query += ' ORDER BY description';
+  // Preserve insertion order instead of alphabetical
+  query += ' ORDER BY id';
   db.all(query, params, (err, rows) => {
     if (err) {
       console.error(err);
