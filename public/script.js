@@ -1,7 +1,26 @@
 let editingId = null;
 
-async function fetchItems() {
-    const res = await fetch('/api/items');
+async function loadCategories() {
+    const res = await fetch('/api/items/categories');
+    const categories = await res.json();
+    const select = document.getElementById('categoryFilter');
+    if (!select) return;
+    select.innerHTML = '';
+    const allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.textContent = 'كل الأنواع';
+    select.appendChild(allOpt);
+    categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        select.appendChild(opt);
+    });
+}
+
+async function fetchItems(category = '') {
+    const url = category ? `/api/items/all?category=${encodeURIComponent(category)}` : '/api/items/all';
+    const res = await fetch(url);
     const items = await res.json();
     const tbody = document.querySelector('#itemsTable tbody');
     tbody.innerHTML = '';
@@ -39,7 +58,9 @@ async function deleteItem(id) {
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
     const res = await fetch(`/api/items/${id}`, { method: 'DELETE' });
     if (res.ok) {
-        fetchItems();
+        const select = document.getElementById('categoryFilter');
+        const cat = select ? select.value : '';
+        fetchItems(cat);
     } else {
         alert('فشل حذف العنصر');
     }
@@ -65,7 +86,9 @@ async function handleSubmit(e) {
         form.reset();
         editingId = null;
         document.getElementById('submitBtn').textContent = 'إضافة';
-        fetchItems();
+        const select = document.getElementById('categoryFilter');
+        const cat = select ? select.value : '';
+        fetchItems(cat);
     } else {
         alert(method === 'POST' ? 'فشل إضافة العنصر' : 'فشل تعديل العنصر');
     }
@@ -73,5 +96,13 @@ async function handleSubmit(e) {
 
 window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('itemForm').addEventListener('submit', handleSubmit);
-    fetchItems();
+    loadCategories().then(() => {
+        const select = document.getElementById('categoryFilter');
+        if (select) {
+            select.addEventListener('change', () => fetchItems(select.value));
+            fetchItems(select.value);
+        } else {
+            fetchItems();
+        }
+    });
 });
