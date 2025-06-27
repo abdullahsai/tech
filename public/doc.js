@@ -105,7 +105,7 @@ async function downloadPdf(id) {
     y += 8;
     doc.text(`المجموع الكلي: OMR${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
 
-    // Add signature image at the bottom right if available
+    // Add supervisor title, signing line and signature centered at the bottom
     try {
         const sigRes = await fetch('/sig.png');
         if (sigRes.ok) {
@@ -115,8 +115,22 @@ async function downloadPdf(id) {
             const pageHeight = doc.internal.pageSize.getHeight();
             const sigW = 30;
             const sigH = 15;
-            doc.addImage('data:image/png;base64,' + sigBase64, 'PNG',
-                pageWidth - sigW - 10, pageHeight - sigH - 10, sigW, sigH);
+            const centerX = pageWidth / 2;
+            const sigX = centerX - sigW / 2;
+            const sigY = pageHeight - sigH - 10;
+
+            // Text above the signature
+            const textY = sigY - 8;
+            doc.text('المشرف / المهندس', centerX, textY, { align: 'center' });
+
+            // Thick signing line
+            const lineY = sigY - 3;
+            doc.setLineWidth(1);
+            doc.line(centerX - sigW / 2, lineY, centerX + sigW / 2, lineY);
+            doc.setLineWidth(0.200025);
+
+            // Signature image
+            doc.addImage('data:image/png;base64,' + sigBase64, 'PNG', sigX, sigY, sigW, sigH);
         }
     } catch (e) {
         console.warn('signature missing or failed to load');
