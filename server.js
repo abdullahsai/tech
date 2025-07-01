@@ -335,7 +335,7 @@ app.get('/api/report/all', (req, res) => {
 app.get('/api/report/:id', (req, res) => {
   const { id } = req.params;
   const infoQuery = `SELECT supervisor, police_report, street, state, location, coordinates, created_at FROM reports WHERE id = ?`;
-  const itemsQuery = `SELECT description, cost, unit, quantity,
+  const itemsQuery = `SELECT item_id, description, cost, unit, quantity,
                              (quantity * cost) AS line_total
                         FROM report_items
                        WHERE report_id = ?`;
@@ -352,6 +352,82 @@ app.get('/api/report/:id', (req, res) => {
       const total = rows.reduce((sum, r) => sum + r.line_total, 0);
       res.json({ ...info, items: rows, total });
     });
+  });
+});
+
+// Endpoint to update a report
+app.put('/api/report/:id', (req, res) => {
+  const reportId = req.params.id;
+  const {
+    supervisor,
+    police_report,
+    street,
+    state,
+    location,
+    coordinates,
+    items,
+  } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'items must be a non-empty array' });
+  }
+
+  db.serialize(() => {
+    db.run(
+      'UPDATE reports SET supervisor = ?, police_report = ?, street = ?, state = ?, location = ?, coordinates = ? WHERE id = ?',
+      [supervisor, police_report, street, state, location, coordinates, reportId],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: 'Failed to update report' });
+        }
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'Report not found' });
+        }
+        db.run('DELETE FROM report_items WHERE report_id = ?', [reportId], err2 => {
+          if (err2) {
+            console.error(err2);
+            return res.status(500).json({ error: 'Failed to update report items' });
+          }
+          const stmt = db.prepare(
+            'INSERT INTO report_items (report_id, item_id, description, unit, cost, quantity) VALUES (?, ?, ?, ?, ?, ?)'
+          );
+          let pending = 0;
+
+          function done() {
+            pending--;
+            if (pending === 0) finalize();
+          }
+
+          function finalize() {
+            stmt.finalize(err3 => {
+              if (err3) {
+                console.error(err3);
+                return res.status(500).json({ error: 'Failed to save report items' });
+              }
+              res.json({ success: true });
+            });
+          }
+
+          for (const entry of items) {
+            const { itemId, quantity } = entry;
+            if (!itemId || !quantity || isNaN(quantity) || quantity <= 0) continue;
+            pending++;
+            db.get(
+              'SELECT description, unit, cost FROM items WHERE id = ?',
+              [itemId],
+              (err4, itemRow) => {
+                if (!err4 && itemRow) {
+                  stmt.run(reportId, itemId, itemRow.description, itemRow.unit, itemRow.cost, quantity, done);
+                } else {
+                  done();
+                }
+              }
+            );
+          }
+          if (pending === 0) finalize();
+        });
+      }
+    );
   });
 });
 
