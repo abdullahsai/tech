@@ -1,3 +1,5 @@
+let editingId = null;
+
 function bufferToBase64(buf) {
     let binary = "";
     const bytes = new Uint8Array(buf);
@@ -106,6 +108,23 @@ function addItems() {
     renderCurrentItems();
 }
 
+async function loadExistingReport(id) {
+    const res = await fetch(`/api/report/${id}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    document.getElementById('supervisor').value = data.supervisor || '';
+    document.getElementById('policeNumber').value = data.police_report || '';
+    document.getElementById('street').value = data.street || '';
+    document.getElementById('state').value = data.state || '';
+    document.getElementById('location').value = data.location || '';
+    document.getElementById('coordinates').value = data.coordinates || '';
+    currentItems.length = 0;
+    data.items.forEach(it => {
+        currentItems.push({ itemId: it.item_id, description: it.description, quantity: it.quantity });
+    });
+    renderCurrentItems();
+}
+
 async function handleSubmit(e) {
     e.preventDefault();
     if (currentItems.length === 0) {
@@ -119,8 +138,10 @@ async function handleSubmit(e) {
     const state = document.getElementById('state').value;
     const location = document.getElementById('location').value;
     const coordinates = document.getElementById('coordinates').value;
-    const res = await fetch('/api/report', {
-        method: 'POST',
+    const url = editingId ? `/api/report/${editingId}` : '/api/report';
+    const method = editingId ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             supervisor,
@@ -133,11 +154,15 @@ async function handleSubmit(e) {
         })
     });
     if (res.ok) {
-        currentItems.length = 0;
-        renderCurrentItems();
-        document.getElementById('reportForm').reset();
-        loadItems(document.getElementById('categorySelect').value);
-        loadReport();
+        if (editingId) {
+            window.location.href = '/doc';
+        } else {
+            currentItems.length = 0;
+            renderCurrentItems();
+            document.getElementById('reportForm').reset();
+            loadItems(document.getElementById('categorySelect').value);
+            loadReport();
+        }
     } else {
         alert('فشل حفظ التقرير');
     }
@@ -302,12 +327,18 @@ async function downloadPdf(id) {
     doc.save(`report-${id}.pdf`);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    loadCategories();
-    loadReport();
+window.addEventListener('DOMContentLoaded', async () => {
+    editingId = new URLSearchParams(window.location.search).get('id');
+    await loadCategories();
     document.getElementById('categorySelect').addEventListener('change', (e) => {
         loadItems(e.target.value);
     });
+    if (editingId) {
+        await loadExistingReport(editingId);
+        document.querySelector('#reportForm button[type="submit"]').textContent = 'حفظ التعديلات';
+    } else {
+        loadReport();
+    }
     document.getElementById('reportForm').addEventListener('submit', handleSubmit);
     document.getElementById('addItemsBtn').addEventListener('click', addItems);
     document.getElementById('discardBtn').addEventListener('click', discardReport);

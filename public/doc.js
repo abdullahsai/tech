@@ -18,12 +18,20 @@ async function loadReports() {
             <td>${rep.id}</td>
             <td>${rep.total.toFixed(2)}</td>
             <td>${new Date(rep.created_at).toLocaleString()}</td>
-            <td><button class="btn btn-sm btn-outline-primary" data-id="${rep.id}">تنزيل PDF</button></td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary download-btn" data-id="${rep.id}">تنزيل PDF</button>
+                <button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${rep.id}"><i class="bi bi-pencil"></i></button>
+            </td>
         `;
         tbody.appendChild(tr);
     });
-    tbody.querySelectorAll('button[data-id]').forEach(btn => {
+    tbody.querySelectorAll('button.download-btn').forEach(btn => {
         btn.addEventListener('click', () => downloadPdf(btn.dataset.id));
+    });
+    tbody.querySelectorAll('button.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            window.location.href = `/report?id=${btn.dataset.id}`;
+        });
     });
 }
 
