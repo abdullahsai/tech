@@ -336,6 +336,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (editingId) {
         await loadExistingReport(editingId);
         document.querySelector('#reportForm button[type="submit"]').textContent = 'حفظ التعديلات';
+        // Allow manual editing of coordinates when updating a report
+        const coordsInput = document.getElementById('coordinates');
+        if (coordsInput) {
+            coordsInput.removeAttribute('readonly');
+        }
     } else {
         loadReport();
     }
