@@ -60,6 +60,7 @@ const db = new sqlite3.Database(dbPath, err => {
         state TEXT,
         location TEXT,
         coordinates TEXT,
+        notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )`
     );
@@ -99,6 +100,9 @@ const db = new sqlite3.Database(dbPath, err => {
       const cols = rows.map(r => r.name);
       if (!cols.includes('coordinates')) {
         db.run('ALTER TABLE reports ADD COLUMN coordinates TEXT');
+      }
+      if (!cols.includes('notes')) {
+        db.run('ALTER TABLE reports ADD COLUMN notes TEXT');
       }
     });
   });
@@ -232,6 +236,7 @@ app.post('/api/report', (req, res) => {
     state,
     location,
     coordinates,
+    notes,
     items,
   } = req.body; // [{ itemId, quantity }]
   if (!Array.isArray(items) || items.length === 0) {
@@ -239,8 +244,8 @@ app.post('/api/report', (req, res) => {
   }
 
   db.run(
-    'INSERT INTO reports (supervisor, police_report, street, state, location, coordinates) VALUES (?, ?, ?, ?, ?, ?)',
-    [supervisor, police_report, street, state, location, coordinates],
+    'INSERT INTO reports (supervisor, police_report, street, state, location, coordinates, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [supervisor, police_report, street, state, location, coordinates, notes],
     function (err) {
       if (err) {
         console.error(err);
@@ -334,7 +339,7 @@ app.get('/api/report/all', (req, res) => {
 // Endpoint to get detailed info for a single report
 app.get('/api/report/:id', (req, res) => {
   const { id } = req.params;
-  const infoQuery = `SELECT supervisor, police_report, street, state, location, coordinates, created_at FROM reports WHERE id = ?`;
+  const infoQuery = `SELECT supervisor, police_report, street, state, location, coordinates, notes, created_at FROM reports WHERE id = ?`;
   const itemsQuery = `SELECT item_id, description, cost, unit, quantity,
                              (quantity * cost) AS line_total
                         FROM report_items
@@ -365,6 +370,7 @@ app.put('/api/report/:id', (req, res) => {
     state,
     location,
     coordinates,
+    notes,
     items,
   } = req.body;
   if (!Array.isArray(items) || items.length === 0) {
@@ -373,8 +379,8 @@ app.put('/api/report/:id', (req, res) => {
 
   db.serialize(() => {
     db.run(
-      'UPDATE reports SET supervisor = ?, police_report = ?, street = ?, state = ?, location = ?, coordinates = ? WHERE id = ?',
-      [supervisor, police_report, street, state, location, coordinates, reportId],
+      'UPDATE reports SET supervisor = ?, police_report = ?, street = ?, state = ?, location = ?, coordinates = ?, notes = ? WHERE id = ?',
+      [supervisor, police_report, street, state, location, coordinates, notes, reportId],
       function (err) {
         if (err) {
           console.error(err);

@@ -118,6 +118,7 @@ async function loadExistingReport(id) {
     document.getElementById('state').value = data.state || '';
     document.getElementById('location').value = data.location || '';
     document.getElementById('coordinates').value = data.coordinates || '';
+    document.getElementById('notes').value = data.notes || '';
     currentItems.length = 0;
     data.items.forEach(it => {
         currentItems.push({ itemId: it.item_id, description: it.description, quantity: it.quantity });
@@ -138,6 +139,7 @@ async function handleSubmit(e) {
     const state = document.getElementById('state').value;
     const location = document.getElementById('location').value;
     const coordinates = document.getElementById('coordinates').value;
+    const notes = document.getElementById('notes').value;
     const url = editingId ? `/api/report/${editingId}` : '/api/report';
     const method = editingId ? 'PUT' : 'POST';
     const res = await fetch(url, {
@@ -150,6 +152,7 @@ async function handleSubmit(e) {
             state,
             location,
             coordinates,
+            notes,
             items: payload
         })
     });
@@ -245,7 +248,8 @@ async function downloadPdf(id) {
         ['اسم الطريق', data.street || ''],
         ['الولاية', data.state || ''],
         ['وصف موقع الحادث', data.location || ''],
-        ['الإحداثيات', data.coordinates || '']
+        ['الإحداثيات', data.coordinates || ''],
+        ['الملاحظات', data.notes || '']
     ];
     const startX = 10;
     const labelW = 60;
