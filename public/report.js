@@ -239,7 +239,7 @@ async function downloadPdf(id) {
     doc.setFontSize(12);
     const headerRows = [
         ['رقم التقرير', String(id)],
-        ['التاريخ', new Date(data.created_at).toLocaleDateString()],
+        ['التاريخ', new Date(data.created_at).toLocaleDateString('en-GB')],
         ['المشرف / المهندس', data.supervisor || ''],
         ['رقم مرجع الشرطة', data.police_report || ''],
         ['اسم الطريق', data.street || ''],
