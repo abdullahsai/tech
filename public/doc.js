@@ -21,9 +21,12 @@ async function loadReports() {
             <td>
                 <button class="btn btn-sm btn-outline-primary download-btn" data-id="${rep.id}">تنزيل PDF</button>
                 <button class="btn btn-sm btn-outline-secondary edit-btn" data-id="${rep.id}"><i class="bi bi-pencil"></i></button>
+                <span class="photo-links ms-1" data-id="${rep.id}"></span>
             </td>
         `;
         tbody.appendChild(tr);
+        const span = tr.querySelector('span.photo-links');
+        loadPhotoLinks(rep.id, span);
     });
     tbody.querySelectorAll('button.download-btn').forEach(btn => {
         btn.addEventListener('click', () => downloadPdf(btn.dataset.id));
@@ -152,6 +155,25 @@ async function downloadPdf(id) {
     }
 
     doc.save(`report-${id}.pdf`);
+}
+
+async function loadPhotoLinks(id, container) {
+    try {
+        const res = await fetch(`/api/report/${id}/photos`);
+        if (!res.ok) return;
+        const urls = await res.json();
+        urls.forEach((url, idx) => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.className = 'btn btn-sm btn-outline-secondary ms-1';
+            a.textContent = `صورة${idx + 1}`;
+            a.target = '_blank';
+            a.download = '';
+            container.appendChild(a);
+        });
+    } catch (e) {
+        console.warn('failed to load photos');
+    }
 }
 
 window.addEventListener('DOMContentLoaded', loadReports);

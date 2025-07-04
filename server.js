@@ -3,13 +3,27 @@ const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const upload = multer();
+
+// directories for database and uploaded files
+const dbDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+const filesDir = path.join(dbDir, 'reports');
+if (!fs.existsSync(filesDir)) {
+  fs.mkdirSync(filesDir, { recursive: true });
+}
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/files', express.static(filesDir));
 
 // Serve report page
 app.get('/report', (req, res) => {
@@ -27,10 +41,6 @@ app.get('/admin', (req, res) => {
 });
 
 // Initialize SQLite database in ./data/data.db
-const dbDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
 const dbPath = path.join(dbDir, 'data.db');
 const db = new sqlite3.Database(dbPath, err => {
   if (err) {
@@ -488,6 +498,30 @@ app.put('/api/report/:id', (req, res) => {
       }
     );
   });
+});
+
+// Upload photos for a report
+app.post('/api/report/:id/photos', upload.array('images', 4), (req, res) => {
+  const reportId = req.params.id;
+  if (!req.files || req.files.length === 0) {
+    return res.json({ success: true });
+  }
+  const destDir = path.join(filesDir, reportId);
+  fs.mkdirSync(destDir, { recursive: true });
+  req.files.forEach((file, idx) => {
+    const name = file.originalname || `photo${idx + 1}.jpg`;
+    fs.writeFileSync(path.join(destDir, name), file.buffer);
+  });
+  res.json({ success: true });
+});
+
+// List photos for a report
+app.get('/api/report/:id/photos', (req, res) => {
+  const reportId = req.params.id;
+  const dir = path.join(filesDir, reportId);
+  if (!fs.existsSync(dir)) return res.json([]);
+  const files = fs.readdirSync(dir).filter(f => /\.(jpe?g|png)$/i.test(f));
+  res.json(files.map(f => `/files/${reportId}/${f}`));
 });
 
 app.listen(PORT, () => {

@@ -2,6 +2,9 @@ let editingId = null;
 
 let accuracyThreshold = 5;
 
+const MAX_PHOTOS = 4;
+const photoFiles = [];
+
 async function loadAccuracySetting() {
     try {
         const res = await fetch('/api/settings/accuracyThreshold');
@@ -22,6 +25,76 @@ function bufferToBase64(buf) {
         binary += String.fromCharCode(bytes[i]);
     }
     return btoa(binary);
+}
+
+async function compressImage(file) {
+    if (file.size <= 1024 * 1024) {
+        return file;
+    }
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = async () => {
+            let w = img.width;
+            let h = img.height;
+            const maxDim = 1280;
+            const scale = Math.min(1, maxDim / Math.max(w, h));
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            let quality = 0.8;
+            let blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+            while (blob.size > 1024 * 1024 && quality > 0.5) {
+                quality -= 0.1;
+                blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+            }
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        };
+        img.onerror = () => reject(new Error('img load error'));
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+function renderPhotoPreview() {
+    const container = document.getElementById('photoPreview');
+    container.innerHTML = '';
+    photoFiles.forEach((file, idx) => {
+        const url = URL.createObjectURL(file);
+        const div = document.createElement('div');
+        div.className = 'position-relative';
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = 'img-thumbnail';
+        img.style.width = '100px';
+        img.style.height = '100px';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm btn-danger position-absolute top-0 end-0';
+        btn.innerHTML = '&times;';
+        btn.addEventListener('click', () => {
+            photoFiles.splice(idx, 1);
+            renderPhotoPreview();
+        });
+        div.appendChild(img);
+        div.appendChild(btn);
+        container.appendChild(div);
+    });
+}
+
+async function handlePhotoInput(e) {
+    const files = Array.from(e.target.files).slice(0, MAX_PHOTOS - photoFiles.length);
+    for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+        try {
+            const compressed = await compressImage(file);
+            photoFiles.push(compressed);
+        } catch {}
+    }
+    e.target.value = '';
+    renderPhotoPreview();
 }
 
 
@@ -168,11 +241,19 @@ async function handleSubmit(e) {
         })
     });
     if (res.ok) {
+        const data = await res.json();
+        if (!editingId && data.reportId && photoFiles.length > 0) {
+            const fd = new FormData();
+            photoFiles.forEach(f => fd.append('images', f, f.name));
+            await fetch(`/api/report/${data.reportId}/photos`, { method: 'POST', body: fd });
+        }
         if (editingId) {
             window.location.href = '/doc';
         } else {
             currentItems.length = 0;
             renderCurrentItems();
+            photoFiles.length = 0;
+            renderPhotoPreview();
             document.getElementById('reportForm').reset();
             loadItems(document.getElementById('categorySelect').value);
             loadReport();
@@ -370,4 +451,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('addItemsBtn').addEventListener('click', addItems);
     document.getElementById('discardBtn').addEventListener('click', discardReport);
     document.getElementById('getCoordsBtn').addEventListener('click', getCoords);
+    const photoInput = document.getElementById('photoInput');
+    if (photoInput) {
+        photoInput.addEventListener('change', handlePhotoInput);
+    }
 });

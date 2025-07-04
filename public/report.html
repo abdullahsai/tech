@@ -42,6 +42,11 @@
                 <textarea id="notes" class="form-control" rows="3" placeholder="ملاحظات"></textarea>
             </div>
         </div>
+        <div class="mb-3">
+            <label class="form-label">تحميل صور (حتى 4)</label>
+            <input type="file" id="photoInput" class="form-control" accept="image/*" multiple>
+            <div id="photoPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+        </div>
         <select id="categorySelect" class="form-select mb-3"></select>
         <div id="itemsList" class="mb-3"></div>
         <button id="addItemsBtn" class="btn btn-secondary mb-3" type="button">إضافة</button>
