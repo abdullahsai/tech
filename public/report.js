@@ -1,5 +1,20 @@
 let editingId = null;
 
+let accuracyThreshold = 5;
+
+async function loadAccuracySetting() {
+    try {
+        const res = await fetch('/api/settings/accuracyThreshold');
+        if (res.ok) {
+            const data = await res.json();
+            const val = parseFloat(data.value);
+            if (!isNaN(val)) accuracyThreshold = val;
+        }
+    } catch (e) {
+        console.warn('failed to load accuracy setting');
+    }
+}
+
 function bufferToBase64(buf) {
     let binary = "";
     const bytes = new Uint8Array(buf);
@@ -196,7 +211,7 @@ function getCoords() {
         (pos) => {
             const acc = pos.coords.accuracy;
             accuracyEl.textContent = `الدقة ${acc.toFixed(1)}م`;
-            if (acc <= 5) {
+            if (acc <= accuracyThreshold) {
                 const lat = pos.coords.latitude;
                 const lon = pos.coords.longitude;
                 const code = olc.encode(lat, lon);
@@ -333,6 +348,7 @@ async function downloadPdf(id) {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+    await loadAccuracySetting();
     editingId = new URLSearchParams(window.location.search).get('id');
     await loadCategories();
     document.getElementById('categorySelect').addEventListener('change', (e) => {
