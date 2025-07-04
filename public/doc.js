@@ -65,7 +65,8 @@ async function downloadPdf(id) {
         ['اسم الطريق', data.street || ''],
         ['الولاية', data.state || ''],
         ['وصف موقع الحادث', data.location || ''],
-        ['الإحداثيات', data.coordinates || '']
+        ['الإحداثيات', data.coordinates || ''],
+        ['الملاحظات', data.notes || '']
     ];
     const startX = 10;
     const labelW = 60;
