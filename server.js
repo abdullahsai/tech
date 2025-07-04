@@ -294,9 +294,8 @@ app.post('/api/report', (req, res) => {
     notes,
     items,
   } = req.body; // [{ itemId, quantity }]
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: 'items must be a non-empty array' });
-  }
+
+  const entries = Array.isArray(items) ? items : [];
 
   db.run(
     'INSERT INTO reports (supervisor, police_report, street, state, location, coordinates, notes) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -327,7 +326,7 @@ app.post('/api/report', (req, res) => {
         });
       }
 
-      for (const entry of items) {
+      for (const entry of entries) {
         const { itemId, quantity } = entry;
         if (!itemId || !quantity || isNaN(quantity) || quantity <= 0) continue;
         pending++;
@@ -359,9 +358,9 @@ app.post('/api/report', (req, res) => {
 // Endpoint to get last 5 reports with totals
 app.get('/api/report', (req, res) => {
   const query = `SELECT r.id, r.created_at,
-                        SUM(ri.quantity * ri.cost) AS total
+                        COALESCE(SUM(ri.quantity * ri.cost), 0) AS total
                    FROM reports r
-                   JOIN report_items ri ON ri.report_id = r.id
+                   LEFT JOIN report_items ri ON ri.report_id = r.id
                   GROUP BY r.id
                   ORDER BY r.created_at DESC
                   LIMIT 5`;
@@ -377,9 +376,9 @@ app.get('/api/report', (req, res) => {
 // Endpoint to get all reports with totals
 app.get('/api/report/all', (req, res) => {
   const query = `SELECT r.id, r.created_at,
-                        SUM(ri.quantity * ri.cost) AS total
+                        COALESCE(SUM(ri.quantity * ri.cost), 0) AS total
                    FROM reports r
-                   JOIN report_items ri ON ri.report_id = r.id
+                   LEFT JOIN report_items ri ON ri.report_id = r.id
                   GROUP BY r.id
                   ORDER BY r.created_at DESC`;
   db.all(query, [], (err, rows) => {
@@ -428,9 +427,8 @@ app.put('/api/report/:id', (req, res) => {
     notes,
     items,
   } = req.body;
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: 'items must be a non-empty array' });
-  }
+
+  const entries = Array.isArray(items) ? items : [];
 
   db.serialize(() => {
     db.run(
@@ -469,7 +467,7 @@ app.put('/api/report/:id', (req, res) => {
             });
           }
 
-          for (const entry of items) {
+          for (const entry of entries) {
             const { itemId, quantity } = entry;
             if (!itemId || !quantity || isNaN(quantity) || quantity <= 0) continue;
             pending++;

@@ -104,16 +104,21 @@ async function downloadPdf(id) {
         y += 8;
     }
 
-    drawItemRow('الوصف', 'التكلفة', 'الكمية', 'المجموع');
-    data.items.forEach(it => {
-        drawItemRow(it.description, it.cost.toFixed(2), String(it.quantity), it.line_total.toFixed(2));
-        if (y > 270) {
-            doc.addPage();
-            y = 20;
-        }
-    });
-    y += 8;
-    doc.text(`المجموع الكلي: OMR${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
+    if (data.items.length === 0) {
+        doc.text('لا يوجد أضرار', 105, y + 4, { align: 'center' });
+        y += 8;
+    } else {
+        drawItemRow('الوصف', 'التكلفة', 'الكمية', 'المجموع');
+        data.items.forEach(it => {
+            drawItemRow(it.description, it.cost.toFixed(2), String(it.quantity), it.line_total.toFixed(2));
+            if (y > 270) {
+                doc.addPage();
+                y = 20;
+            }
+        });
+        y += 8;
+        doc.text(`المجموع الكلي: OMR${data.total.toFixed(2)}`, 200 - 10, y, { align: 'right' });
+    }
 
     // Add supervisor title, signing line and signature centered at the bottom
     try {
