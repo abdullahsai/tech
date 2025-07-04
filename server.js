@@ -79,6 +79,29 @@ const db = new sqlite3.Database(dbPath, err => {
       )`
     );
 
+    // Table for storing simple key/value settings
+    db.run(
+      `CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )`
+    );
+
+    // Ensure accuracy setting exists with a default of 5 meters
+    db.get(
+      'SELECT value FROM settings WHERE key = ?',
+      ['accuracyThreshold'],
+      (err, row) => {
+        if (err) return;
+        if (!row) {
+          db.run(
+            'INSERT INTO settings (key, value) VALUES (?, ?)',
+            ['accuracyThreshold', '5']
+          );
+        }
+      }
+    );
+
     // Add snapshot columns if database was created with old schema
     db.all('PRAGMA table_info(report_items)', (err, rows) => {
       if (err) return;
@@ -214,6 +237,38 @@ app.get('/api/items/all', (req, res) => {
     }
     res.json(rows);
   });
+});
+
+// Endpoint to retrieve a setting by key
+app.get('/api/settings/:key', (req, res) => {
+  const { key } = req.params;
+  db.get('SELECT value FROM settings WHERE key = ?', [key], (err, row) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Failed to retrieve setting' });
+    }
+    res.json({ value: row ? row.value : null });
+  });
+});
+
+// Endpoint to update or create a setting
+app.post('/api/settings/:key', (req, res) => {
+  const { key } = req.params;
+  const { value } = req.body;
+  if (typeof value === 'undefined') {
+    return res.status(400).json({ error: 'value is required' });
+  }
+  db.run(
+    'REPLACE INTO settings (key, value) VALUES (?, ?)',
+    [key, String(value)],
+    err => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Failed to save setting' });
+      }
+      res.json({ success: true });
+    }
+  );
 });
 
 // Endpoint to get last 5 items
