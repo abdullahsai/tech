@@ -7,6 +7,7 @@ const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const API_KEY = process.env.API_KEY;
 
 const upload = multer();
 
@@ -522,6 +523,57 @@ app.get('/api/report/:id/photos', (req, res) => {
   if (!fs.existsSync(dir)) return res.json([]);
   const files = fs.readdirSync(dir).filter(f => /\.(jpe?g|png)$/i.test(f));
   res.json(files.map(f => `/files/${reportId}/${f}`));
+});
+
+// Dump the entire database in JSON format
+app.get('/api/dump', (req, res) => {
+  if (!API_KEY || req.get('X-API-Key') !== API_KEY) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  const roDb = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, err => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Failed to open database' });
+    }
+  });
+  roDb.configure('busyTimeout', 5000);
+
+  roDb.all(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    (err, tables) => {
+      if (err) {
+        console.error(err);
+        roDb.close();
+        return res.status(500).json({ error: 'Failed to list tables' });
+      }
+      const data = {};
+      let pending = tables.length;
+      if (pending === 0) {
+        roDb.close();
+        return res.json(data);
+      }
+      tables.forEach(t => {
+        roDb.all(`SELECT * FROM ${t.name}`, (err2, rows) => {
+          if (err2) {
+            console.error(err2);
+            if (!res.headersSent) {
+              res.status(500).json({ error: `Failed to read table ${t.name}` });
+            }
+            roDb.close();
+            pending = 0;
+            return;
+          }
+          data[t.name] = rows;
+          pending--;
+          if (pending === 0 && !res.headersSent) {
+            roDb.close();
+            res.json(data);
+          }
+        });
+      });
+    }
+  );
 });
 
 app.listen(PORT, () => {
