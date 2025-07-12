@@ -1,3 +1,8 @@
 body {
     font-family: Arial, sans-serif;
 }
+
+input.is-invalid,
+textarea.is-invalid {
+    border: 2px solid red !important;
+}
