@@ -252,8 +252,33 @@ async function loadExistingReport(id) {
     }
 }
 
+const requiredFieldIds = ['supervisor', 'policeNumber', 'street', 'state', 'location'];
+
+function validateRequiredFields() {
+    let firstInvalid = null;
+    requiredFieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!el.value.trim()) {
+            el.classList.add('is-invalid');
+            if (!firstInvalid) firstInvalid = el;
+        } else {
+            el.classList.remove('is-invalid');
+        }
+    });
+    if (firstInvalid) {
+        firstInvalid.focus();
+        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+    }
+    return true;
+}
+
 async function handleSubmit(e) {
     e.preventDefault();
+    if (!validateRequiredFields()) {
+        return;
+    }
     const payload = currentItems.map(it => ({ itemId: it.itemId, quantity: it.quantity }));
     const supervisor = document.getElementById('supervisor').value;
     const police_report = document.getElementById('policeNumber').value;
@@ -494,4 +519,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (photoInput) {
         photoInput.addEventListener('change', handlePhotoInput);
     }
+
+    requiredFieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', () => {
+                if (el.value.trim()) {
+                    el.classList.remove('is-invalid');
+                }
+            });
+        }
+    });
 });
