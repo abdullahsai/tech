@@ -4,6 +4,7 @@ let accuracyThreshold = 5;
 
 const MAX_PHOTOS = 4;
 const photoFiles = [];
+const existingPhotos = [];
 
 async function loadAccuracySetting() {
     try {
@@ -61,6 +62,29 @@ async function compressImage(file) {
 function renderPhotoPreview() {
     const container = document.getElementById('photoPreview');
     container.innerHTML = '';
+    existingPhotos.forEach((p, idx) => {
+        const div = document.createElement('div');
+        div.className = 'position-relative';
+        const img = document.createElement('img');
+        img.src = p.url;
+        img.className = 'img-thumbnail';
+        img.style.width = '100px';
+        img.style.height = '100px';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm btn-danger position-absolute top-0 end-0';
+        btn.innerHTML = '&times;';
+        btn.addEventListener('click', async () => {
+            if (editingId) {
+                await fetch(`/api/report/${editingId}/photos/${encodeURIComponent(p.name)}`, { method: 'DELETE' });
+            }
+            existingPhotos.splice(idx, 1);
+            renderPhotoPreview();
+        });
+        div.appendChild(img);
+        div.appendChild(btn);
+        container.appendChild(div);
+    });
     photoFiles.forEach((file, idx) => {
         const url = URL.createObjectURL(file);
         const div = document.createElement('div');
@@ -85,7 +109,7 @@ function renderPhotoPreview() {
 }
 
 async function handlePhotoInput(e) {
-    const files = Array.from(e.target.files).slice(0, MAX_PHOTOS - photoFiles.length);
+    const files = Array.from(e.target.files).slice(0, MAX_PHOTOS - photoFiles.length - existingPhotos.length);
     for (const file of files) {
         if (!file.type.startsWith('image/')) continue;
         try {
@@ -212,6 +236,20 @@ async function loadExistingReport(id) {
         currentItems.push({ itemId: it.item_id, description: it.description, quantity: it.quantity });
     });
     renderCurrentItems();
+    try {
+        const pRes = await fetch(`/api/report/${id}/photos`);
+        if (pRes.ok) {
+            const urls = await pRes.json();
+            existingPhotos.length = 0;
+            urls.forEach(u => {
+                const name = u.split('/').pop();
+                existingPhotos.push({ url: u, name });
+            });
+            renderPhotoPreview();
+        }
+    } catch (e) {
+        console.warn('failed to load photos');
+    }
 }
 
 async function handleSubmit(e) {
@@ -242,10 +280,11 @@ async function handleSubmit(e) {
     });
     if (res.ok) {
         const data = await res.json();
-        if (!editingId && data.reportId && photoFiles.length > 0) {
+        const uploadId = editingId ? editingId : data.reportId;
+        if (uploadId && photoFiles.length > 0) {
             const fd = new FormData();
             photoFiles.forEach(f => fd.append('images', f, f.name));
-            await fetch(`/api/report/${data.reportId}/photos`, { method: 'POST', body: fd });
+            await fetch(`/api/report/${uploadId}/photos`, { method: 'POST', body: fd });
         }
         if (editingId) {
             window.location.href = '/doc';

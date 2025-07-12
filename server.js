@@ -525,6 +525,21 @@ app.get('/api/report/:id/photos', (req, res) => {
   res.json(files.map(f => `/files/${reportId}/${f}`));
 });
 
+// Delete a photo for a report
+app.delete('/api/report/:id/photos/:name', (req, res) => {
+  const reportId = req.params.id;
+  const name = path.basename(req.params.name);
+  const filePath = path.join(filesDir, reportId, name);
+  fs.unlink(filePath, err => {
+    if (err) {
+      if (err.code === 'ENOENT') return res.status(404).json({ error: 'Not found' });
+      console.error(err);
+      return res.status(500).json({ error: 'Failed to delete photo' });
+    }
+    res.json({ success: true });
+  });
+});
+
 // Dump the entire database in JSON format
 app.get('/api/dump', (req, res) => {
   if (!API_KEY || req.get('X-API-Key') !== API_KEY) {
