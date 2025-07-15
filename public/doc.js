@@ -74,20 +74,24 @@ async function downloadPdf(id) {
     const startX = 10;
     const labelW = 60;
     const valueW = 130;
+    const cellPad = 3;
     let y = 45;
     const lineH = 6;
     headerRows.forEach(([label, value]) => {
-        const labelLines = doc.splitTextToSize(label, labelW - 4);
-        const valueLines = doc.splitTextToSize(value, valueW - 4);
+        const labelLines = doc.splitTextToSize(label, labelW - cellPad * 2);
+        const valueLines = doc.splitTextToSize(value, valueW - cellPad * 2);
         const lines = Math.max(labelLines.length, valueLines.length);
-        const rowH = lines * lineH;
+        const rowH = lines * lineH + cellPad * 2;
         doc.rect(startX, y, valueW, rowH);
         doc.rect(startX + valueW, y, labelW, rowH);
+        const offset = (rowH - lines * lineH) / 2;
         labelLines.forEach((ln, idx) => {
-            doc.text(ln, startX + valueW + labelW - 2, y + 5 + idx * lineH, { align: 'right' });
+            const textY = y + offset + lineH / 2 + idx * lineH;
+            doc.text(ln, startX + valueW + labelW - cellPad, textY, { align: 'right' });
         });
         valueLines.forEach((ln, idx) => {
-            doc.text(ln, startX + valueW - 2, y + 5 + idx * lineH, { align: 'right' });
+            const textY = y + offset + lineH / 2 + idx * lineH;
+            doc.text(ln, startX + valueW - cellPad, textY, { align: 'right' });
         });
         y += rowH;
     });
@@ -105,19 +109,21 @@ async function downloadPdf(id) {
     const itemStartX = (doc.internal.pageSize.getWidth() - tableW) / 2;
 
     function drawItemRow(desc, cost, qty, total) {
-        const descLines = doc.splitTextToSize(desc, colWDesc - 4);
+        const descLines = doc.splitTextToSize(desc, colWDesc - cellPad * 2);
         const lines = Math.max(descLines.length, 1);
-        const rowH = lines * lineH;
-        const baseY = y + rowH / 2 + 2;
+        const rowH = lines * lineH + cellPad * 2;
         doc.rect(itemStartX, y, colWTotal, rowH);
         doc.rect(itemStartX + colWTotal, y, colWQty, rowH);
         doc.rect(itemStartX + colWTotal + colWQty, y, colWCost, rowH);
         doc.rect(itemStartX + colWTotal + colWQty + colWCost, y, colWDesc, rowH);
-        doc.text(total, itemStartX + colWTotal - 2, baseY, { align: 'right' });
-        doc.text(qty, itemStartX + colWTotal + colWQty - 2, baseY, { align: 'right' });
-        doc.text(cost, itemStartX + colWTotal + colWQty + colWCost - 2, baseY, { align: 'right' });
+        const baseY = y + rowH / 2;
+        doc.text(total, itemStartX + colWTotal - cellPad, baseY, { align: 'right' });
+        doc.text(qty, itemStartX + colWTotal + colWQty - cellPad, baseY, { align: 'right' });
+        doc.text(cost, itemStartX + colWTotal + colWQty + colWCost - cellPad, baseY, { align: 'right' });
+        const offset = (rowH - lines * lineH) / 2;
         descLines.forEach((ln, idx) => {
-            doc.text(ln, itemStartX + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5 + idx * lineH, { align: 'right' });
+            const textY = y + offset + lineH / 2 + idx * lineH;
+            doc.text(ln, itemStartX + colWTotal + colWQty + colWCost + colWDesc - cellPad, textY, { align: 'right' });
         });
         y += rowH;
     }
