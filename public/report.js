@@ -410,7 +410,7 @@ async function downloadPdf(id) {
     const startX = 10;
     const labelW = 60;
     const valueW = 130;
-    const cellPad = 3;
+    const cellPad = 0.5;
     let y = 45;
     const lineH = 6;
     headerRows.forEach(([label, value]) => {
