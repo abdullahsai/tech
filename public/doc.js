@@ -84,14 +84,13 @@ async function downloadPdf(id) {
         const rowH = lines * lineH + cellPad * 2;
         doc.rect(startX, y, valueW, rowH);
         doc.rect(startX + valueW, y, labelW, rowH);
-        const offset = (rowH - lines * lineH) / 2;
         labelLines.forEach((ln, idx) => {
-            const textY = y + offset + lineH / 2 + idx * lineH;
-            doc.text(ln, startX + valueW + labelW - cellPad, textY, { align: 'right' });
+            const lineY = y + rowH / 2 + (idx - (labelLines.length - 1) / 2) * lineH;
+            doc.text(ln, startX + valueW + labelW - cellPad, lineY, { align: 'right', baseline: 'middle' });
         });
         valueLines.forEach((ln, idx) => {
-            const textY = y + offset + lineH / 2 + idx * lineH;
-            doc.text(ln, startX + valueW - cellPad, textY, { align: 'right' });
+            const lineY = y + rowH / 2 + (idx - (valueLines.length - 1) / 2) * lineH;
+            doc.text(ln, startX + valueW - cellPad, lineY, { align: 'right', baseline: 'middle' });
         });
         y += rowH;
     });
@@ -117,13 +116,12 @@ async function downloadPdf(id) {
         doc.rect(itemStartX + colWTotal + colWQty, y, colWCost, rowH);
         doc.rect(itemStartX + colWTotal + colWQty + colWCost, y, colWDesc, rowH);
         const baseY = y + rowH / 2;
-        doc.text(total, itemStartX + colWTotal - cellPad, baseY, { align: 'right' });
-        doc.text(qty, itemStartX + colWTotal + colWQty - cellPad, baseY, { align: 'right' });
-        doc.text(cost, itemStartX + colWTotal + colWQty + colWCost - cellPad, baseY, { align: 'right' });
-        const offset = (rowH - lines * lineH) / 2;
+        doc.text(total, itemStartX + colWTotal - cellPad, baseY, { align: 'right', baseline: 'middle' });
+        doc.text(qty, itemStartX + colWTotal + colWQty - cellPad, baseY, { align: 'right', baseline: 'middle' });
+        doc.text(cost, itemStartX + colWTotal + colWQty + colWCost - cellPad, baseY, { align: 'right', baseline: 'middle' });
         descLines.forEach((ln, idx) => {
-            const textY = y + offset + lineH / 2 + idx * lineH;
-            doc.text(ln, itemStartX + colWTotal + colWQty + colWCost + colWDesc - cellPad, textY, { align: 'right' });
+            const lineY = y + rowH / 2 + (idx - (descLines.length - 1) / 2) * lineH;
+            doc.text(ln, itemStartX + colWTotal + colWQty + colWCost + colWDesc - cellPad, lineY, { align: 'right', baseline: 'middle' });
         });
         y += rowH;
     }
