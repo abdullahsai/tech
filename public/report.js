@@ -411,12 +411,21 @@ async function downloadPdf(id) {
     const labelW = 60;
     const valueW = 130;
     let y = 45;
+    const lineH = 6;
     headerRows.forEach(([label, value]) => {
-        doc.rect(startX, y, valueW, 8);
-        doc.rect(startX + valueW, y, labelW, 8);
-        doc.text(value, startX + valueW - 2, y + 5, { align: 'right' });
-        doc.text(label, startX + valueW + labelW - 2, y + 5, { align: 'right' });
-        y += 8;
+        const labelLines = doc.splitTextToSize(label, labelW - 4);
+        const valueLines = doc.splitTextToSize(value, valueW - 4);
+        const lines = Math.max(labelLines.length, valueLines.length);
+        const rowH = lines * lineH;
+        doc.rect(startX, y, valueW, rowH);
+        doc.rect(startX + valueW, y, labelW, rowH);
+        labelLines.forEach((ln, idx) => {
+            doc.text(ln, startX + valueW + labelW - 2, y + 5 + idx * lineH, { align: 'right' });
+        });
+        valueLines.forEach((ln, idx) => {
+            doc.text(ln, startX + valueW - 2, y + 5 + idx * lineH, { align: 'right' });
+        });
+        y += rowH;
     });
     y += 5;
     doc.setLineWidth(0.8);
@@ -432,15 +441,21 @@ async function downloadPdf(id) {
     const itemStartX = (doc.internal.pageSize.getWidth() - tableW) / 2;
 
     function drawItemRow(desc, cost, qty, total) {
-        doc.rect(itemStartX, y, colWTotal, 8);
-        doc.rect(itemStartX + colWTotal, y, colWQty, 8);
-        doc.rect(itemStartX + colWTotal + colWQty, y, colWCost, 8);
-        doc.rect(itemStartX + colWTotal + colWQty + colWCost, y, colWDesc, 8);
-        doc.text(total, itemStartX + colWTotal - 2, y + 5, { align: 'right' });
-        doc.text(qty, itemStartX + colWTotal + colWQty - 2, y + 5, { align: 'right' });
-        doc.text(cost, itemStartX + colWTotal + colWQty + colWCost - 2, y + 5, { align: 'right' });
-        doc.text(desc, itemStartX + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5, { align: 'right' });
-        y += 8;
+        const descLines = doc.splitTextToSize(desc, colWDesc - 4);
+        const lines = Math.max(descLines.length, 1);
+        const rowH = lines * lineH;
+        const baseY = y + rowH / 2 + 2;
+        doc.rect(itemStartX, y, colWTotal, rowH);
+        doc.rect(itemStartX + colWTotal, y, colWQty, rowH);
+        doc.rect(itemStartX + colWTotal + colWQty, y, colWCost, rowH);
+        doc.rect(itemStartX + colWTotal + colWQty + colWCost, y, colWDesc, rowH);
+        doc.text(total, itemStartX + colWTotal - 2, baseY, { align: 'right' });
+        doc.text(qty, itemStartX + colWTotal + colWQty - 2, baseY, { align: 'right' });
+        doc.text(cost, itemStartX + colWTotal + colWQty + colWCost - 2, baseY, { align: 'right' });
+        descLines.forEach((ln, idx) => {
+            doc.text(ln, itemStartX + colWTotal + colWQty + colWCost + colWDesc - 2, y + 5 + idx * lineH, { align: 'right' });
+        });
+        y += rowH;
     }
 
     if (data.items.length === 0) {
