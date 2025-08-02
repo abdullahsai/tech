@@ -31,16 +31,13 @@ function bufferToBase64(buf) {
 function wrapText(text, maxWidth, doc) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const fontPt = doc.getFontSize();
-    const fontPx = fontPt * (96 / 72);
-    ctx.font = `${fontPx}px Amiri`;
+    ctx.font = `${doc.getFontSize()}px Amiri`;
     const words = text.split(' ');
     const lines = [];
     let line = words[0] || '';
-    const maxWidthPx = maxWidth * doc.internal.scaleFactor * (96 / 72);
     for (let i = 1; i < words.length; i++) {
         const testLine = line ? line + ' ' + words[i] : words[i];
-        if (ctx.measureText(testLine).width <= maxWidthPx) {
+        if (ctx.measureText(testLine).width <= maxWidth) {
             line = testLine;
         } else {
             if (line) lines.push(line);
