@@ -28,6 +28,26 @@ function bufferToBase64(buf) {
     return btoa(binary);
 }
 
+function wrapText(text, maxWidth, doc) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = `${doc.getFontSize()}px Amiri`;
+    const words = text.split(' ');
+    const lines = [];
+    let line = words[0] || '';
+    for (let i = 1; i < words.length; i++) {
+        const testLine = line ? line + ' ' + words[i] : words[i];
+        if (ctx.measureText(testLine).width <= maxWidth) {
+            line = testLine;
+        } else {
+            if (line) lines.push(line);
+            line = words[i];
+        }
+    }
+    if (line) lines.push(line);
+    return lines.length ? lines : [''];
+}
+
 async function compressImage(file) {
     if (file.size <= 1024 * 1024) {
         return file;
@@ -415,8 +435,8 @@ async function downloadPdf(id) {
     let y = 45;
     const lineH = 6;
     headerRows.forEach(([label, value]) => {
-        const labelLines = doc.splitTextToSize(label, labelW - horizontalPad * 2);
-        const valueLines = doc.splitTextToSize(value, valueW - horizontalPad * 2);
+        const labelLines = wrapText(label, labelW - horizontalPad * 2, doc);
+        const valueLines = wrapText(value, valueW - horizontalPad * 2, doc);
         const lines = Math.max(labelLines.length, valueLines.length);
         const rowH = lines * lineH + verticalPad * 2;
         doc.rect(startX, y, valueW, rowH);
@@ -445,7 +465,7 @@ async function downloadPdf(id) {
     const itemStartX = (doc.internal.pageSize.getWidth() - tableW) / 2;
 
     function drawItemRow(desc, cost, qty, total) {
-        const descLines = doc.splitTextToSize(desc, colWDesc - horizontalPad * 2);
+        const descLines = wrapText(desc, colWDesc - horizontalPad * 2, doc);
         const lines = Math.max(descLines.length, 1);
         const rowH = lines * lineH + verticalPad * 2;
         doc.rect(itemStartX, y, colWTotal, rowH);
